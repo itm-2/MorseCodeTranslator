@@ -1,0 +1,360 @@
+어떠한 입력이 들어왔을 때
+그 입력을 자동으로 감지하여 해당 입력이 어떤 입력에 대응되는지 확인한다.
+
+내부 모듈은 총 세 개로 나뉜다.
+
+(-는 private를 뜻함)
+- detectSingleKey()
+- detectMultiKey()
+- detectLongKey()
+
+단, 각 모듈의 출력은 3비트 + 1바이트 구조이며,
+최상위 3비트는 입력의 종류를 나타낸다.
+
+(입력 종류에 대한 자세한 설명은 아래 참조)
+
+000 SingleKey
+001 LongKey
+010 MultiKey
+011 MacroKey
+100 Control SingleKey
+101 Control LongKey
+110 Control MultiKey
+
+e.g.) 'A'의 짧은 입력에 대해 00001000001 = 000 0100 0001 = 00'A'를 반환한다.
+
+입력이 유효하지 않거나 감지되지 않은 경우
+000 0000 0000을 출력한다.
+
+앞서 언급된 세 모듈로부터 반환값을 받되,
+이때는 MSB를 반드시 0으로 하고,
+이후 입력의 종류에 따라 Control로 분류되면 MSB를 1로 한다.
+
+반환 기준은 다음과 같다.
+1. detectSingleKey()
+
+버튼 입력 이후
+긴 입력의 최소 지속시간보다 앞선 시간에 버튼을 뗄 경우 반환한다.
+
+2. detectMultiKey()
+
+첫 버튼 입력 이후
+첫 버튼을 떼지 않은 상황에서
+둘째 버튼이 입력되는 경우 반환한다.
+(두 개의 버튼 입력까지만 처리함. 세 개 입력은 고려하지 않음)
+
+굳이 버튼을 떼지 않더라도 입력으로 판정한다.
+단, 두 버튼을 모두 뗄 때까지 key 입력이 freeze된다.
+
+3. detectLongKey()
+
+버튼 입력 이후
+긴 입력의 최소 지속시간보다 큰 경우에 반환한다.
+굳이 버튼을 떼지 않더라도 입력으로 판정한다.
+단, 버튼을 뗄 때까지 key 입력이 freeze된다.
+
+입력 모드는 총 다섯 분류로 나눌 수 있다.
+
+- 알파벳 모드
+- 모스부호 모드
+- 세팅 모드
+- 제어 신호
+- 매크로
+
+알파벳 모드와 모스부호 모드, 세팅 모드는
+모두 KeyMap[]으로부터 하위 8비트를 가져온다.
+
+처음에 초기화된 Mode와
+User가 사용하고자 하는 State, button의 idx에 대해
+KeyMap[ Mode + State + idx ]로 키 정보를 가져온다.
+
+단, 모스부호 모드의 button2에 대해서는 취급이 다르다.
+
+이때는, 입력이 되는 순간 버튼을 뗀 여부와 관계없이 singleKey로 처리한다.
+
+( UI는 UserSetting에서 가져온 AutoDitGap을 바탕으로
+다시 KeyAction을 요청한다. )
+
+매크로 모드의 경우, UI에서 다시 KeyAction이 요청될 때까지 버튼을 freeze한다.
+( UI는 UserSetting에서 가져온 Macro를 모두 출력할 때까지
+버튼을 frezz한다. )
+
+
+--상세--
+
+Mode는 Alphabet과 Morse, Setting을 enum으로 한다.
+MaxState는 Alphabet은 4, Morse와 Setting은 0이다.
+
+각각의 키 배열은 다음과 같다.
+(idx는 1부터 8까지 순서대로 나타냄)
+
+Mode Alphabet
+state 0:
+1, 2, 3, 4, 5, 6, 7, 8
+
+state 1:
+9, 0, A, B, C, D, E, F
+
+state 2:
+G, H, I, J, K, L, M, N
+
+state 3:
+O, P, Q, R, S, T, U, V
+
+state 4:
+W, X, Y, Z
+
+Mode Morse
+
+state 0:
+('.'는 dit 신호, '-'는 dah 신호이다.)
+
+button 1: '-' (LongKey), '.'(SingleKey)
+button 2: '.'(SingleKey)
+
+이때, 버튼 인덱스에 맞게 원 핫 인코딩 한다.
+즉, button 1은 0000 0001
+button 2는 0000 0010이다.
+
+그 외 button 3 - 8
+Macro1 - 6
+
+자세한 사항은 모두 UI에서 처리하므로
+Macro1 - 6은 원 핫 인코딩으로 한다.
+
+e.g.) Macro 5는 0001 0000이고
+Macro 2는 0000 0010이다.
+
+세팅 모드
+
+state 0:
+button 1: UP
+button 2: DOWN
+
+단, 모스부호와 겹치지 않게 하기 위하여
+button 1: 0000 0100
+button 2: 0000 1000으로 한다.
+
+제어 신호
+
+제어 신호는 모드마다 최소 4가지 제어 신호가 존재한다.
+하위 8비트는 원 핫 인코딩으로 하며, 버튼 idx - 6의 위치의 비트를 1로 한다.
+MultiKey 제어신호의 경우, 두번째로 입력되는 버튼을 기준으로 한다.
+
+(9번 버튼은 아래 명세에 따라 기능이 달라지지만, UI에서 처리하도록 한다.)
+
+공통 제어 신호
+
+10번, 11번과 12번은 각각 CLEAR, BACK과 ENTER이다.
+CLEAR는 Buffer를 초기화한다.
+ENTER는 선택/입력을 수행한다.
+11번은 LongKey일 시 Exit이며, SingleKey일 시 BACKSPACE로 작용한다.
+
+알파벳 모드
+9번 버튼은 SPACE 버튼으로, SingleKey만 허용된다.
+(실질적으로 제어 신호에 해당하지 않지만, 키 배치상 제어 신호로 판정한다.)
+
+또한, 9+7, 9+8의 입력에 대해 각각 NextState, PrevState가 수행된다.
+이는 키 맵의 state를 바꾸는 역할을 한다.
+
+모스부호 모드
+9번 버튼은 PAUSE이며, 모스코드의 SPACE 타이밍을 초기화한다.
+
+
+예제 입출력
+
+input1 (알파벳 모드)
+Mode: Alphabet, State: 3
+button: 4, SingleKey
+
+output1
+000 0101 0010
+
+input2
+Mode: Alphabet, State: 0
+button: 8, SingleKey
+
+output2
+000 0011 1000
+
+input3
+Mode: Alphabet, State: 4
+button: 4, SingleKey
+
+output3
+000 0101 1010
+
+input4 (예외 처리)
+Mode: Alphabet, State: 4
+button: 6, SingleKey
+
+output4
+000 0000 0000
+
+input5
+Mode: Alphabet, State: 2
+button: 6+4, MultiKey
+
+output5
+000 0000 0000
+
+input6
+Mode: Alphabet, State: 2
+button: 6+10, MultiKey
+
+output6
+000 0000 0000
+
+input7 (모스부호 모드)
+Mode: Morse, State: 0
+button: 1, SingleKey
+
+output7
+000 0000 0001
+
+input8
+Mode: Morse, State: 0
+button: 1, LongKey
+
+output8
+001 0000 0001
+
+input9 (모스부호 예외처리)
+Mode: Morse, State: 0
+button 2
+
+output9 (즉시 처리되어야 함)
+000 0000 0010
+
+input10
+Mode: Morse, State: 0
+button 1+2, MultiKey
+
+output10
+000 0000 0000
+
+input11
+Mode: Morse, State: 0
+button 1+10, MultiKey
+
+output11
+000 0000 0000
+
+input12 (매크로)
+Mode: Morse, State: 0
+button: 6, SingleKey
+
+output12
+011 0000 1000
+
+input13
+Mode: Morse, State: 0
+button: 8, SingleKey
+
+output13
+011 0010 0000
+
+input14 (매크로 예외 처리)
+Mode: Morse State: 0
+button: 7, LongKey
+
+output14
+000 0000 0000
+
+input15
+Mode: Morse, State: 0
+button: 5+10, MultiKey
+
+output15 
+000 0000 0000
+
+input16 (제어 신호)
+Mode: Alphabet, State: 4
+button: 9+7 MultiKey
+
+output16
+110 0000 0001
+
+input17
+Mode: Alphabet, State: 0
+button: 9+8 MultiKey
+
+output17
+110 0000 0010
+
+input18
+Mode: Morse, State: 0
+button: 9, SingleKey
+
+output18
+100 0000 0100
+
+input19
+Mode: Morse, State: 0
+button: 11, SingleKey
+
+output19
+100 0001 0000
+
+input20 (EXIT)
+Mode: Setting, State: 0
+button: 11, LongKey
+
+output20
+101 0001 0000
+
+input21 (예외 처리)
+Mode: Alphabet, State: 4
+button: 12, LongKey
+
+output21
+000 0000 0000
+
+input22
+Mode: Morse, State: 0
+button: 9+4, MultiKey
+
+output22
+000 0000 0000
+
+input23
+Mode: Morse, State: 0
+button: 10+12, MultiKey
+
+output
+000 0000 0000
+
+input24 (세팅 모드)
+Mode: Setting, State: 0
+button: 1, SingleKey
+
+output24
+000 0000 0100
+
+input25
+Mode: Setting, State: 0
+button: 2, SingleKey
+
+output25
+000 0000 1000
+
+input26 (예외 처리)
+Mode: Setting, State: 0
+button: 7, SingleKey
+
+output26
+000 0000 0000
+
+input27
+Mode: Setting, State: 0
+button: 1, LongKey
+
+output27
+000 0000 0000
+
+input28
+Mode: Setting, State: 0
+button: 1+2, MultiKey
+
+output28
+000 0000 0000
