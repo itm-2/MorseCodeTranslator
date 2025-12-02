@@ -57,5 +57,3 @@ UI는 MaxState의 다음 State를 0으로,
 해당 함수를 구성하는 private 함수는 다음과 같습니다.
 - setServoMotor()
 
-
-+setMode(int NextMode): void
