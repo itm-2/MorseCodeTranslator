@@ -77,8 +77,11 @@ KeyMap[ Mode + State + idx ]로 키 정보를 가져온다.
 
 매크로 모드의 경우, UI에서 다시 KeyAction이 요청될 때까지 버튼을 freeze한다.
 ( UI는 UserSetting에서 가져온 Macro를 모두 출력할 때까지
-버튼을 frezz한다. )
+버튼을 freeze한다. )
 
+Freeze
+
+KeyMapping 내부의 Freeze가 true라면 모든 Key 입력에 대해 000 0000 0000을 반환한다.
 
 --상세--
 
@@ -357,4 +360,5 @@ Mode: Setting, State: 0
 button: 1+2, MultiKey
 
 output28
+
 000 0000 0000
