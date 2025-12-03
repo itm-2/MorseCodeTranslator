@@ -163,6 +163,11 @@ ENTER는 선택/입력을 수행한다.
 모스부호 모드
 9번 버튼은 PAUSE이며, 모스코드의 SPACE 타이밍을 초기화한다.
 
+즉, 9번 버튼에 대해서는 
+모스코드 2번 버튼과 같이
+누르고 있는 동안 계속해서 UI가 짧은 주기로 polling할 수 있도록 한다.
+
+따라서, 9번 버튼도 즉각 SingKey로 반환한다.
 
 예제 입출력
 
@@ -287,78 +292,85 @@ output17
 
 input18
 Mode: Morse, State: 0
-button: 9, SingleKey
+button: 9
 
-output18
+output18 (즉각 SingleKey로 반환)
 100 0000 0100
 
 input19
+Mode: Alphabet, State: 3
+button: 9 SingleKey
+
+output19
+100 0000 0100
+
+input20
 Mode: Morse, State: 0
 button: 11, SingleKey
 
-output19
+output20
 100 0001 0000
 
-input20 (EXIT)
+input21 (EXIT)
 Mode: Setting, State: 0
 button: 11, LongKey
 
-output20
+output21
 101 0001 0000
 
-input21 (예외 처리)
+input22 (예외 처리)
 Mode: Alphabet, State: 4
 button: 12, LongKey
-
-output21
-000 0000 0000
-
-input22
-Mode: Morse, State: 0
-button: 9+4, MultiKey
 
 output22
 000 0000 0000
 
 input23
 Mode: Morse, State: 0
-button: 10+12, MultiKey
+button: 9+4, MultiKey
 
-output
+output23
 000 0000 0000
 
-input24 (세팅 모드)
+input24
+Mode: Morse, State: 0
+button: 10+12, MultiKey
+
+output24
+000 0000 0000
+
+input25 (세팅 모드)
 Mode: Setting, State: 0
 button: 1, SingleKey
 
-output24
+output25
 000 0000 0100
 
-input25
+input26
 Mode: Setting, State: 0
 button: 2, SingleKey
 
-output25
+output26
 000 0000 1000
 
-input26 (예외 처리)
+input27 (예외 처리)
 Mode: Setting, State: 0
 button: 7, SingleKey
-
-output26
-000 0000 0000
-
-input27
-Mode: Setting, State: 0
-button: 1, LongKey
 
 output27
 000 0000 0000
 
 input28
 Mode: Setting, State: 0
-button: 1+2, MultiKey
+button: 1, LongKey
 
 output28
-
 000 0000 0000
+
+input29
+Mode: Setting, State: 0
+button: 1+2, MultiKey
+
+output29
+000 0000 0000
+
