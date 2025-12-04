@@ -1,0 +1,68 @@
+translate(string s)는 다음을 시행합니다.
+
+알파벳 하나를 s로 입력받습니다
+(DECODE에서는 한 글자씩 입력받음)
+
+s를 모스부호로 번역 한 뒤 Buffer에 push합니다.
+(Buffer는 Queue로 구현됩니다.)
+
+번역 방식은 코드 수를 최적으로 줄이고,
+그리디 방식을 사용하기 위해
+다음의 허프만 코드를 사용합니다.
+
+dit 0
+dah 10
+SPACE 11
+
+단, 구분자는 SPACE 한 번, 띄어쓰기는 SPACE 두 번으로 합니다.
+
+즉, 한 글자를 입력받으면 해당 모스부호와, 그 끝에 구분자를 붙인 것을 Buffer에 push합니다. 
+SPACE 문자를 입력받으면 끝에 구분자를 붙이지 않고 SPACE 하나를 Buffer에 push합니다.
+
+e.g.) input: 'A'
+
+A는 모스부호 '.-'에 대응되므로
+Buffer에는 'dit,dah,SPACE'에 대응되는 허프만 코드가 push되어야 함.
+즉, '01011'이 push됨.
+
+input: ' '
+
+SPACE 문자이므로 '11'이 push됨
+
+예시 입출력
+
+input1
+'B'
+
+output1
+1000011
+
+input2
+'Q'
+
+output2
+101001011
+
+input3
+'W'
+
+output3
+0101011
+
+input4
+'7'
+
+output4
+101000011
+
+input5
+0
+
+output5
+101010101011
+
+input6
+' '
+
+output6
+11
