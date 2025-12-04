@@ -38,8 +38,8 @@ Cursor의 값이 바뀐다면 그에 맞도록 UI에 적용하여 textLCD에 재
 따라서, NextUUID[MaxCursor+1]은 BACK의 UUID로 둡니다.
 
 e.g.)
-위의 메뉴에서 {"1011","0001","1010","0010","1100"} 등으로 함.
-(3,4번째 원소는 ENTER/BACK을 고려한 결과임)
+위의 메뉴에서 {"1011","0001","1010","0010"} 등으로 함.
+(3번째 원소는 BACK을 고려한 결과임)
 
 화면 구성
 
@@ -64,5 +64,5 @@ e.g.)
       SETTING
 
 화면 4에서 ENTER 입력 시,
-Cursor = 2이므로 NextUUID[2]의 UUID로 UserControl을 수정합니다.
+Cursor = 2이므로 NextUUID[2] = 1010의 UUID로 UserControl을 수정합니다.
 이때, UserControl은 값의 변경을 감지하고 CurrentUUID로 showUI를 수행하며 화면이 전환됩니다.
