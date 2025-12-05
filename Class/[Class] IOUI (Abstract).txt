@@ -25,6 +25,7 @@ DecodeUI에서는 String을 textLCD에 나타냅니다.
 
 +printPiezo(string s): void
 Buffer의 내용(Morse code)을 Piezo에 출력합니다.
+(언급은 되어 있지 않지만, Full Color LED에도 함께 출력합니다.)
 이때, UserSetting의 MaxDitTime과 DitGap을 반영합니다.
 
 EncodeUI에서는 모스부호를 Piezo와 Full Color LED에 나타냅니다.
