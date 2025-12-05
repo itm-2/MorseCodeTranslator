@@ -24,11 +24,11 @@ DecodeUI에서는 String을 textLCD에 나타내며
 EncodeUI에서는 모스부호를 Piezo와 Full Color LED에 나타냅니다.
 
 +showUI()
-초기 화면 구성은 다음과 같이 한다.
+초기 화면 구성은 다음과 같습니다.
 
 초기 화면 (화면 1)
 
 ENTER THE CODE...
 
 화면 1에서 아무 Key를 입력하면
-입력을 처리하면 각 class가 요구하는 화면을 띄운다.
+입력을 처리하면 각 class가 요구하는 화면을 띄웁니다.
