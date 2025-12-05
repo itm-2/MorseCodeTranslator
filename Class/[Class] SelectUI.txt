@@ -37,6 +37,12 @@ Cursor의 값이 바뀐다면 그에 맞도록 UI에 적용하여 textLCD에 재
 
 따라서, NextUUID[MaxCursor+1]은 BACK의 UUID로 둡니다.
 
++showUI(): void
+KeyMapping을 Setting으로 설정합니다.
+Cursor Mark를 (2,0)에 ">>"의 형태로 띄웁니다.
+(5,0)과 (5,1)에 각각 Menu[0], Menu[1]을 띄웁니다.
+NextUUID에는 Menu[idx]의 UUID를 NextUUI[idx]에 저장합니다.
+
 e.g.)
 위의 메뉴에서 {"1011","0001","1010","0010"} 등으로 함.
 (3번째 원소는 BACK을 고려한 결과임)
