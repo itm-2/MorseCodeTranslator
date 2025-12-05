@@ -1,7 +1,9 @@
 IOUI는 Input과 textLCD를 제외한 Output이 모두 존재하는 UI를 뜻합니다.
 
 해당 클래스는 하나 이상의 Buffer를 포함하고 있으며,
-이 Buffer를 통해 입력을 받고 Processing합니다.
+이 Buffer에 대해 Processing합니다.
+
+해당 클래스는 DecodeUI와 EncodeUI로 나뉩니다.
 
 함수
 
@@ -11,6 +13,12 @@ IOUI는 Input과 textLCD를 제외한 Output이 모두 존재하는 UI를 뜻합
 
 또는, 정해진 버퍼 사이즈를 초과하여도 마찬가지로 작동합니다.
 
-input(): void (Abstract)
-문자를 입력받습니다.
+wait(int sec): void
+실제로 동작을 멈추는 게 아닌,
+conter 변수로 sec초만큼을 세고 신호를 줍니다.
 
++printOutput(string s): void (Abstract)
+번역된 Buffer을 송출합니다.
+
+DecodeUI에서는 String을 textLCD에 나타내며
+EncodeUI에서는 모스부호를 Piezo와 Full Color LED에 나타냅니다.
