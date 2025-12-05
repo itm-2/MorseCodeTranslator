@@ -7,7 +7,7 @@ IOUI는 Input과 textLCD를 제외한 Output이 모두 존재하는 UI를 뜻합
 
 함수
 
-+wanrInvalid(): void
++warnInvalid(): void
 잘못된 입력에 대해 Full Color LED(RED)와 Piezo(220Hz)를 통해 경고하고
 해당 입력을 버립니다.
 
