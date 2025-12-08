@@ -7,26 +7,81 @@ module MorseSystemTop #(
     // 외부 입력 (FPGA 핀)
     // ========================================
     input  wire        clk,
-    input  wire        rst_n,
+    input  wire        rst_n,          // 외부 리셋 버튼 (Active-Low)
     input  wire        is_active,
-    input  wire [4:0]  btn,
+    input  wire [4:0]  btn,            // 버튼 입력 (비동기)
 
     // ========================================
     // 외부 출력 (FPGA 핀)
     // ========================================
-    output wire [9:0]  led,
+    output wire [7:0]  led,
     output wire        led_r,
     output wire        led_g,
     output wire        led_b,
     output wire        piezo,
     output wire        servo_pwm,
     
-    // LCD 출력
+    // LCD 출력 (4비트 모드)
     output wire        lcd_e,
     output wire        lcd_rs,
     output wire        lcd_rw,
-    output wire [7:0]  lcd_data
+    output wire [7:4]  lcd_data        // ← 상위 4비트만 사용 (4비트 모드)
 );
+
+    //==========================================================================
+    // 파워온 리셋 생성 (Power-On Reset)
+    //==========================================================================
+    reg [7:0] por_counter = 8'h00;
+    reg por_rst_n = 1'b0;
+    
+    always @(posedge clk) begin
+        if (por_counter < 8'hFF) begin
+            por_counter <= por_counter + 1;
+            por_rst_n <= 1'b0;
+        end else begin
+            por_rst_n <= 1'b1;
+        end
+    end
+    
+    // 내부 리셋 신호: 파워온 리셋 + 외부 리셋 버튼
+    wire internal_rst_n;
+    assign internal_rst_n = por_rst_n & rst_n;
+
+    //==========================================================================
+    // 버튼 입력 동기화 (2단 플립플롭)
+    //==========================================================================
+    reg [4:0] btn_sync1 = 5'b00000;
+    reg [4:0] btn_sync2 = 5'b00000;
+    
+    always @(posedge clk or negedge internal_rst_n) begin
+        if (!internal_rst_n) begin
+            btn_sync1 <= 5'b00000;
+            btn_sync2 <= 5'b00000;
+        end else begin
+            btn_sync1 <= btn;
+            btn_sync2 <= btn_sync1;
+        end
+    end
+    
+    wire [4:0] btn_synced = btn_sync2;
+
+    //==========================================================================
+    // is_active 신호 동기화
+    //==========================================================================
+    reg is_active_sync1 = 1'b0;
+    reg is_active_sync2 = 1'b0;
+    
+    always @(posedge clk or negedge internal_rst_n) begin
+        if (!internal_rst_n) begin
+            is_active_sync1 <= 1'b0;
+            is_active_sync2 <= 1'b0;
+        end else begin
+            is_active_sync1 <= is_active;
+            is_active_sync2 <= is_active_sync1;
+        end
+    end
+    
+    wire is_active_synced = is_active_sync2;
 
     // ========================================
     // 내부 신호 (모듈 간 연결)
@@ -54,6 +109,10 @@ module MorseSystemTop #(
     wire [1:0]  lcd_row;
     wire [3:0]  lcd_col;
     wire [7:0]  lcd_char;
+    
+    // LCD 4비트 데이터 (내부)
+    wire [7:0]  lcd_data_full;
+    assign lcd_data = lcd_data_full[7:4];  // 상위 4비트만 외부 출력
 
     // ================================================
     // 타이밍 컨트롤러
@@ -62,9 +121,9 @@ module MorseSystemTop #(
         .CLK_HZ(CLK_HZ)
     ) timing_ctrl (
         .clk(clk),
-        .rst_n(rst_n),
-        .speed_up(btn[2]),      // btn[2]: 속도 증가
-        .speed_down(btn[4]),    // btn[4]: 속도 감소
+        .rst_n(internal_rst_n),
+        .speed_up(btn_synced[2]),      // btn[2]: 속도 증가
+        .speed_down(btn_synced[4]),    // btn[4]: 속도 감소
         
         .speed_level(speed_level),
         .timeout_cycles(timeout_cycles),
@@ -83,8 +142,8 @@ module MorseSystemTop #(
         .AUTOREPEAT_INTERVAL_CYCLES(CLK_HZ / 100)
     ) btn_input (
         .clk(clk),
-        .rst_n(rst_n),
-        .btn(btn),
+        .rst_n(internal_rst_n),
+        .btn(btn_synced),              // 동기화된 버튼 사용
 
         .key_valid(key_valid),
         .key_packet(key_packet),
@@ -98,31 +157,28 @@ module MorseSystemTop #(
     // ================================================
     // 버퍼 클리어 신호 생성
     // ================================================
-    reg [1:0] clear_btn_sync;
-    reg clear_btn_prev;
+    reg clear_btn_prev = 1'b0;
     wire clear_pulse;
 
-    always @(posedge clk or negedge rst_n) begin
-        if(!rst_n) begin
-            clear_btn_sync <= 2'b00;
+    always @(posedge clk or negedge internal_rst_n) begin
+        if(!internal_rst_n) begin
             clear_btn_prev <= 1'b0;
         end
         else begin
-            clear_btn_sync <= {clear_btn_sync[0], btn[3]};
-            clear_btn_prev <= clear_btn_sync[1];
+            clear_btn_prev <= btn_synced[3];
         end
     end
 
     // 상승 엣지 감지
-    assign clear_pulse = clear_btn_sync[1] && !clear_btn_prev;
+    assign clear_pulse = btn_synced[3] && !clear_btn_prev;
 
     // ================================================
     // 디코더
     // ================================================
     DecodeUI decode (
         .clk(clk),
-        .rst_n(rst_n),
-        .is_active(is_active),
+        .rst_n(internal_rst_n),
+        .is_active(is_active_synced),  // 동기화된 신호 사용
         .key_packet(key_packet),
         .key_valid(key_valid),
         
@@ -132,7 +188,7 @@ module MorseSystemTop #(
         // 동적 타이밍 파라미터
         .timeout_cycles(timeout_cycles),
 
-        // LCD 내부 신호 (외부 포트 아님!)
+        // LCD 내부 신호
         .lcd_busy(lcd_busy),
         .lcd_done(lcd_done),
         .lcd_req(lcd_req),
@@ -148,10 +204,13 @@ module MorseSystemTop #(
     // LCD 컨트롤러
     // ================================================
     LCD_Controller #(
-        .CLK_HZ(CLK_HZ)
+        .CLK_HZ(CLK_HZ),
+        .INIT_DELAY_US(100000),        // 100ms (안전)
+        .CMD_DELAY_US(5000),           // 5ms (안전)
+        .CHAR_DELAY_US(200)            // 200us (안전)
     ) lcd_ctrl (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(internal_rst_n),
         
         // DecodeUI로부터 받는 내부 신호
         .lcd_req(lcd_req),
@@ -167,7 +226,7 @@ module MorseSystemTop #(
         .lcd_e(lcd_e),
         .lcd_rs(lcd_rs),
         .lcd_rw(lcd_rw),
-        .lcd_data(lcd_data)
+        .lcd_data(lcd_data_full)       // 8비트 전체 (상위 4비트만 외부 출력)
     );
 
     // ================================================
@@ -175,7 +234,7 @@ module MorseSystemTop #(
     // ================================================
     PiezoToneController piezo_ctrl (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(internal_rst_n),
         .btn1_held(btn1_held),
         .auto_dot_pulse(auto_dot),
         .dash_pulse(dash_pulse),
@@ -191,7 +250,7 @@ module MorseSystemTop #(
     // ================================================
     RGB_LED_Controller rgb_ctrl (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(internal_rst_n),
         .dash_pulse(dash_pulse),
         
         .dash_display_cycles(dash_cycles),
@@ -208,7 +267,7 @@ module MorseSystemTop #(
         .CLK_HZ(CLK_HZ)
     ) servo_ctrl (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(internal_rst_n),
         .angle(servo_angle),
         .pwm_out(servo_pwm)
     );
