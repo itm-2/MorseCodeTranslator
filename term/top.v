@@ -1,15 +1,15 @@
 `timescale 1ns / 1ps
 
 module MorseSystemTop #(
-    parameter integer CLK_HZ = 100_000_000
+    parameter integer CLK_HZ = 25_000_000  // 25MHz
 )(
     // ========================================
     // 외부 입력 (FPGA 핀)
     // ========================================
     input  wire        clk,
-    input  wire        rst_n,          // 외부 리셋 버튼 (Active-Low)
+    input  wire        rst_n,
     input  wire        is_active,
-    input  wire [4:0]  btn,            // 버튼 입력 (비동기)
+    input  wire [4:0]  btn,
 
     // ========================================
     // 외부 출력 (FPGA 핀)
@@ -21,11 +21,11 @@ module MorseSystemTop #(
     output wire        piezo,
     output wire        servo_pwm,
     
-    // LCD 출력 (4비트 모드)
+    // LCD 출력 (8비트 모드) ← 변경!
     output wire        lcd_e,
     output wire        lcd_rs,
     output wire        lcd_rw,
-    output wire [7:4]  lcd_data        // ← 상위 4비트만 사용 (4비트 모드)
+    output wire [7:0]  lcd_data  // ← 8비트로 변경!
 );
 
     //==========================================================================
@@ -109,10 +109,6 @@ module MorseSystemTop #(
     wire [1:0]  lcd_row;
     wire [3:0]  lcd_col;
     wire [7:0]  lcd_char;
-    
-    // LCD 4비트 데이터 (내부)
-    wire [7:0]  lcd_data_full;
-    assign lcd_data = lcd_data_full[7:4];  // 상위 4비트만 외부 출력
 
     // ================================================
     // 타이밍 컨트롤러
@@ -122,8 +118,8 @@ module MorseSystemTop #(
     ) timing_ctrl (
         .clk(clk),
         .rst_n(internal_rst_n),
-        .speed_up(btn_synced[2]),      // btn[2]: 속도 증가
-        .speed_down(btn_synced[4]),    // btn[4]: 속도 감소
+        .speed_up(btn_synced[2]),
+        .speed_down(btn_synced[4]),
         
         .speed_level(speed_level),
         .timeout_cycles(timeout_cycles),
@@ -136,14 +132,14 @@ module MorseSystemTop #(
     // 버튼 입력 처리
     // ================================================
     ButtonMorseInput #(
-        .DEBOUNCE_CYCLES(CLK_HZ / 2000),
-        .LONG_PRESS_CYCLES(CLK_HZ / 40),
-        .AUTOREPEAT_DELAY_CYCLES(CLK_HZ / 20),
-        .AUTOREPEAT_INTERVAL_CYCLES(CLK_HZ / 100)
+        .DEBOUNCE_CYCLES(CLK_HZ / 2000),           // 12,500 cycles (0.5ms)
+        .LONG_PRESS_CYCLES(CLK_HZ / 40),           // 625,000 cycles (25ms)
+        .AUTOREPEAT_DELAY_CYCLES(CLK_HZ / 20),     // 1,250,000 cycles (50ms)
+        .AUTOREPEAT_INTERVAL_CYCLES(CLK_HZ / 100)  // 250,000 cycles (10ms)
     ) btn_input (
         .clk(clk),
         .rst_n(internal_rst_n),
-        .btn(btn_synced),              // 동기화된 버튼 사용
+        .btn(btn_synced),
 
         .key_valid(key_valid),
         .key_packet(key_packet),
@@ -169,7 +165,6 @@ module MorseSystemTop #(
         end
     end
 
-    // 상승 엣지 감지
     assign clear_pulse = btn_synced[3] && !clear_btn_prev;
 
     // ================================================
@@ -178,17 +173,13 @@ module MorseSystemTop #(
     DecodeUI decode (
         .clk(clk),
         .rst_n(internal_rst_n),
-        .is_active(is_active_synced),  // 동기화된 신호 사용
+        .is_active(is_active_synced),
         .key_packet(key_packet),
         .key_valid(key_valid),
         
-        // 버퍼 클리어 신호
         .clear_buffer(clear_pulse),
-        
-        // 동적 타이밍 파라미터
         .timeout_cycles(timeout_cycles),
 
-        // LCD 내부 신호
         .lcd_busy(lcd_busy),
         .lcd_done(lcd_done),
         .lcd_req(lcd_req),
@@ -201,32 +192,26 @@ module MorseSystemTop #(
     );
 
     // ================================================
-    // LCD 컨트롤러
+    // LCD 컨트롤러 (8비트 모드)
     // ================================================
     LCD_Controller #(
-        .CLK_HZ(CLK_HZ),
-        .INIT_DELAY_US(100000),        // 100ms (안전)
-        .CMD_DELAY_US(5000),           // 5ms (안전)
-        .CHAR_DELAY_US(200)            // 200us (안전)
+        .CLK_HZ(CLK_HZ)
     ) lcd_ctrl (
         .clk(clk),
         .rst_n(internal_rst_n),
         
-        // DecodeUI로부터 받는 내부 신호
         .lcd_req(lcd_req),
         .lcd_row(lcd_row),
         .lcd_col(lcd_col),
         .lcd_char(lcd_char),
         
-        // DecodeUI로 보내는 내부 신호
         .lcd_busy(lcd_busy),
         .lcd_done(lcd_done),
         
-        // 외부 LCD 핀 출력
         .lcd_e(lcd_e),
         .lcd_rs(lcd_rs),
         .lcd_rw(lcd_rw),
-        .lcd_data(lcd_data_full)       // 8비트 전체 (상위 4비트만 외부 출력)
+        .lcd_data(lcd_data)  // ← 직접 연결!
     );
 
     // ================================================
