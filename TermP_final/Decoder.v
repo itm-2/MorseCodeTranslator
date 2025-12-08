@@ -6,10 +6,10 @@ module DecodeUI (
     input  wire [10:0] key_packet,
     input  wire        key_valid,
     
-    // ? ¹öÆÛ Å¬¸®¾î ½ÅÈ£ Ãß°¡
+    // ? ë²„í¼ í´ë¦¬ì–´ ì‹ í˜¸ ì¶”ê°€
     input  wire        clear_buffer,
     
-    // µ¿Àû Å¸ÀÌ¹Ö ÀÔ·Â
+    // ë™ì  íƒ€ì´ë° ì…ë ¥
     input  wire [31:0] timeout_cycles,
 
     input  wire        lcd_busy,
@@ -34,7 +34,7 @@ module DecodeUI (
     localparam ST_DECODE      = 3'd2;
     localparam ST_WRITE_CHAR  = 3'd3;
     localparam ST_WRITE_SPACE = 3'd4;
-    localparam ST_CLEAR       = 3'd5;  // ? Å¬¸®¾î »óÅÂ Ãß°¡
+    localparam ST_CLEAR       = 3'd5;  // ? í´ë¦¬ì–´ ìƒíƒœ ì¶”ê°€
 
     reg [2:0] state;
     reg [7:0] line0[0:15];
@@ -70,8 +70,8 @@ module DecodeUI (
         init_step = 6'd0;
         write_pos = 5'd0;
         
-        timeout_threshold = 32'd150_000_000;
-        space_threshold = 32'd150_000_000;
+        timeout_threshold = 32'd37_500_000;
+        space_threshold = 32'd125_000_000;
         
         for(i=0; i<16; i=i+1) begin
             line0[i] = 8'd32;
@@ -86,7 +86,7 @@ module DecodeUI (
         line1[5] = 8'd69;  // E
     end
 
-    // Å¸ÀÓ¾Æ¿ô ÀÓ°è°ª ¾÷µ¥ÀÌÆ®
+    // íƒ€ì„ì•„ì›ƒ ì„ê³„ê°’ ì—…ë°ì´íŠ¸
     always @(posedge clk) begin
         timeout_threshold <= timeout_cycles;
         space_threshold <= timeout_cycles << 1;
@@ -168,9 +168,9 @@ module DecodeUI (
                     end
 
                     ST_IDLE: begin
-                        // ? ¹öÆÛ Å¬¸®¾î Ã¼Å© (ÃÖ¿ì¼±)
+                        // ? ë²„í¼ í´ë¦¬ì–´ ì²´í¬ (ìµœìš°ì„ )
                         if(clear_buffer) begin
-                            // ¹öÆÛ ÃÊ±âÈ­
+                            // ë²„í¼ ì´ˆê¸°í™”
                             for(i=0; i<16; i=i+1)
                                 line0[i] <= 8'd32;
                             
@@ -278,13 +278,13 @@ module DecodeUI (
                         end
                     end
 
-                    // ? ¹öÆÛ Å¬¸®¾î »óÅÂ
+                    // ? ë²„í¼ í´ë¦¬ì–´ ìƒíƒœ
                     ST_CLEAR: begin
                         if(!lcd_busy && !lcd_req) begin
                             if(write_pos < 16) begin
                                 lcd_row <= 2'd0;
                                 lcd_col <= write_pos[3:0];
-                                lcd_char <= 8'd32;  // °ø¹éÀ¸·Î Ã¤¿ì±â
+                                lcd_char <= 8'd32;  // ê³µë°±ìœ¼ë¡œ ì±„ìš°ê¸°
                                 lcd_req <= 1'b1;
                                 write_pos <= write_pos + 5'd1;
                             end
