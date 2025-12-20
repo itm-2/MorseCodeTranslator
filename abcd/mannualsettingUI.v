@@ -1,5 +1,5 @@
 //==========================================================================
-// ManualTimingSettingUI - º≠∫∏∏≈Õ ∞¢µµ ¡¶æÓ √ﬂ∞° πˆ¿¸
+// ManualTimingSettingUI - ÏÑúÎ≥¥Î™®ÌÑ∞ Í∞ÅÎèÑ Ï†úÏñ¥ Ï∂îÍ∞Ä Î≤ÑÏ†Ñ
 //==========================================================================
 module ManualTimingSettingUI #(
     parameter CLK_HZ = 25_000_000
@@ -33,13 +33,13 @@ module ManualTimingSettingUI #(
     localparam [1:0] LEVEL_ADVANCED     = 2'd2;
     localparam [1:0] LEVEL_EXPERT       = 2'd3;
     
-    localparam [31:0] BASE_LONG_KEY = 32'd25_000_000;
-    localparam [31:0] BASE_DIT_GAP  = 32'd12_500_000;
-    localparam [31:0] BASE_DIT_TIME = 32'd12_500_000;
-    localparam [31:0] BASE_DAH_TIME = 32'd37_500_000;
+    localparam [31:0] BASE_LONG_KEY = 32'd2_200_000;  // 0.1Ï¥à Íæπ ÎàÑÎ•¥Î©¥ Dash (ÎØºÍ∞êÌï®)
+    localparam [31:0] BASE_DIT_GAP  = 32'd1_250_000;  // 0.05Ï¥à Í∞ÑÍ≤© Ïó∞ÏÇ¨
+    localparam [31:0] BASE_DIT_TIME = 32'd500_000;  // Ï†ê Í∏∏Ïù¥ 0.05Ï¥à
+    localparam [31:0] BASE_DAH_TIME = 32'd2_000_000;  // ÏÑ† Í∏∏Ïù¥ 0.15Ï¥à
     localparam [15:0] BASE_TONE_FREQ = 16'd440;
     
-    localparam [127:0] DEMO_BITSTREAM = {
+    localparam [255:0] DEMO_BITSTREAM = {
         2'b10, 1'b0, 2'b10, 1'b0, 2'b11,
         2'b10, 2'b10, 1'b0, 2'b10, 2'b11,
         4'b1111,
@@ -78,11 +78,11 @@ module ManualTimingSettingUI #(
     
     always @(*) begin
         case (current_level)
-            LEVEL_BEGINNER:     begin multiplier_num = 32'd2;  multiplier_den = 32'd2; end
-            LEVEL_INTERMEDIATE: begin multiplier_num = 32'd3;  multiplier_den = 32'd2; end
-            LEVEL_ADVANCED:     begin multiplier_num = 32'd6;  multiplier_den = 32'd2; end
-            LEVEL_EXPERT:       begin multiplier_num = 32'd12; multiplier_den = 32'd2; end
-            default:            begin multiplier_num = 32'd2;  multiplier_den = 32'd2; end
+            LEVEL_BEGINNER:     begin multiplier_num = 32'd12;  multiplier_den = 32'd2; end
+            LEVEL_INTERMEDIATE: begin multiplier_num = 32'd6;  multiplier_den = 32'd2; end
+            LEVEL_ADVANCED:     begin multiplier_num = 32'd4;  multiplier_den = 32'd2; end
+            LEVEL_EXPERT:       begin multiplier_num = 32'd3; multiplier_den = 32'd2; end
+            default:            begin multiplier_num = 32'd3;  multiplier_den = 32'd2; end
         endcase
     end
     
@@ -118,7 +118,7 @@ module ManualTimingSettingUI #(
     end
     
     //==========================================================================
-    // °⁄ «ŸΩ… ºˆ¡§: text_valid∏¶ 1 cycle pulse∑Œ ∫Ø∞Ê
+    // ‚òÖ ÌïµÏã¨ ÏàòÏ†ï: text_validÎ•º 1 cycle pulseÎ°ú Î≥ÄÍ≤Ω
     //==========================================================================
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -130,10 +130,10 @@ module ManualTimingSettingUI #(
             wait_counter     <= 32'd0;
             playback_enabled <= 1'b0;
             led_out <= 8'h00;
-            text_valid <= 1'b0;  // °Á √ﬂ∞°
+            text_valid <= 1'b0;  // ‚Üê Ï∂îÍ∞Ä
         end else begin
             player_start <= 1'b0;
-            text_valid <= 1'b0;  // °Á ±‚∫ª∞™
+            text_valid <= 1'b0;  // ‚Üê Í∏∞Î≥∏Í∞í
             
             if (ui_active) begin
                 led_out <= 8'b0000_0011;
@@ -145,7 +145,7 @@ module ManualTimingSettingUI #(
                 saved_level <= ext_level;
                 if (ui_active) begin
                     current_level <= ext_level;
-                    text_valid <= 1'b1;  // °Á ≈ÿΩ∫∆Æ ∫Ø∞Ê Ω√ ∆ﬁΩ∫
+                    text_valid <= 1'b1;  // ‚Üê ÌÖçÏä§Ìä∏ Î≥ÄÍ≤Ω Ïãú ÌéÑÏä§
                 end
             end
             else if (ui_just_activated) begin
@@ -154,7 +154,7 @@ module ManualTimingSettingUI #(
                 playback_enabled <= 1'b1;
                 play_state       <= ST_IDLE;
                 wait_counter     <= 32'd0;
-                text_valid <= 1'b1;  // °Á UI »∞º∫»≠ Ω√ ∆ﬁΩ∫
+                text_valid <= 1'b1;  // ‚Üê UI ÌôúÏÑ±Ìôî Ïãú ÌéÑÏä§
             end
             else if (!ui_active) begin
                 play_state       <= ST_IDLE;
@@ -170,11 +170,11 @@ module ManualTimingSettingUI #(
                 end
                 else if (btn2_pressed && current_level != LEVEL_EXPERT) begin
                     current_level <= current_level + 2'd1;
-                    text_valid <= 1'b1;  // °Á ≥≠¿Ãµµ ∫Ø∞Ê Ω√ ∆ﬁΩ∫
+                    text_valid <= 1'b1;  // ‚Üê ÎÇúÏù¥ÎèÑ Î≥ÄÍ≤Ω Ïãú ÌéÑÏä§
                 end
                 else if (btn1_pressed && current_level != LEVEL_BEGINNER) begin
                     current_level <= current_level - 2'd1;
-                    text_valid <= 1'b1;  // °Á ≥≠¿Ãµµ ∫Ø∞Ê Ω√ ∆ﬁΩ∫
+                    text_valid <= 1'b1;  // ‚Üê ÎÇúÏù¥ÎèÑ Î≥ÄÍ≤Ω Ïãú ÌéÑÏä§
                 end
                 
                 case (play_state)
@@ -211,7 +211,7 @@ module ManualTimingSettingUI #(
         end
     end
     
-    // ========== µΩ∫«√∑π¿Ã ≈ÿΩ∫∆Æ √‚∑¬ (¡∂«’ ≥Ì∏Æ ¿Ø¡ˆ) ==========
+    // ========== ÎîîÏä§ÌîåÎ†àÏù¥ ÌÖçÏä§Ìä∏ Ï∂úÎ†• (Ï°∞Ìï© ÎÖºÎ¶¨ Ïú†ÏßÄ) ==========
     always @(*) begin
         case (current_level)
             LEVEL_BEGINNER:     display_text = STR_BEGINNER;
