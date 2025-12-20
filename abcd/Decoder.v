@@ -23,7 +23,7 @@ module DecodeUI (
     output reg  [3:0]  next_ui_id,
     output reg         char_complete_beep,
 
-    // Ãß°¡: LED Ãâ·Â (Top¿¡¼­ led mux¿¡ »ç¿ë)
+    // ì¶”ê°€: LED ì¶œë ¥ (Topì—ì„œ led muxì— ì‚¬ìš©)
     output reg  [7:0]  led_out
 );
 
@@ -69,7 +69,7 @@ module DecodeUI (
     reg cursor_update_pending;
     reg [3:0] old_cursor_pos;
 
-    // ========== initial ºí·Ï (FPGA ÇÕ¼º Áö¿ø °¡Á¤) ==========
+    // ========== initial ë¸”ë¡ (FPGA í•©ì„± ì§€ì› ê°€ì •) ==========
     initial begin
         state = ST_INIT;
         lcd_req = 1'b0;
@@ -105,21 +105,21 @@ module DecodeUI (
         cursor_update_pending = 1'b0;
         old_cursor_pos = 4'd0;
 
-        led_out = 8'h00;
+        led_out = 8'b0000_0111;
         
-        // line0 ÃÊ±âÈ­ (°ø¹é)
+        // line0 ì´ˆê¸°í™” (ê³µë°±)
         line0[0] = 8'd32; line0[1] = 8'd32; line0[2] = 8'd32; line0[3] = 8'd32;
         line0[4] = 8'd32; line0[5] = 8'd32; line0[6] = 8'd32; line0[7] = 8'd32;
         line0[8] = 8'd32; line0[9] = 8'd32; line0[10] = 8'd32; line0[11] = 8'd32;
         line0[12] = 8'd32; line0[13] = 8'd32; line0[14] = 8'd32; line0[15] = 8'd32;
         
-        // line1 ±âº» °ø¹é
+        // line1 ê¸°ë³¸ ê³µë°±
         line1[0] = 8'd32; line1[1] = 8'd32; line1[2] = 8'd32; line1[3] = 8'd32;
         line1[4] = 8'd32; line1[5] = 8'd32; line1[6] = 8'd32; line1[7] = 8'd32;
         line1[8] = 8'd32; line1[9] = 8'd32; line1[10] = 8'd32; line1[11] = 8'd32;
         line1[12] = 8'd32; line1[13] = 8'd32; line1[14] = 8'd32; line1[15] = 8'd32;
         
-        // "DECODE" Ç¥½Ã (line1[0..5])
+        // "DECODE" í‘œì‹œ (line1[0..5])
         line1[0] = 8'd68;  // D
         line1[1] = 8'd69;  // E
         line1[2] = 8'd67;  // C
@@ -128,7 +128,7 @@ module DecodeUI (
         line1[5] = 8'd69;  // E
     end
 
-    // ========== Å° µğÄÚµå ==========
+    // ========== í‚¤ ë””ì½”ë“œ ==========
     wire is_key_input = key_valid && (key_packet[10:8] == TYPE_KEY);
     wire [7:0] key_code = key_packet[7:0];
     
@@ -234,16 +234,14 @@ module DecodeUI (
             
             cursor_update_pending <= 1'b0;
             old_cursor_pos <= 4'd0;
-
-            led_out <= 8'h00;
             
-            // line0 ¸®¼Â
+            // line0 ë¦¬ì…‹
             line0[0] <= 8'd32; line0[1] <= 8'd32; line0[2] <= 8'd32; line0[3] <= 8'd32;
             line0[4] <= 8'd32; line0[5] <= 8'd32; line0[6] <= 8'd32; line0[7] <= 8'd32;
             line0[8] <= 8'd32; line0[9] <= 8'd32; line0[10] <= 8'd32; line0[11] <= 8'd32;
             line0[12] <= 8'd32; line0[13] <= 8'd32; line0[14] <= 8'd32; line0[15] <= 8'd32;
             
-            // line1 ¸®¼Â ÈÄ "DECODE"
+            // line1 ë¦¬ì…‹ í›„ "DECODE"
             line1[0] <= 8'd32; line1[1] <= 8'd32; line1[2] <= 8'd32; line1[3] <= 8'd32;
             line1[4] <= 8'd32; line1[5] <= 8'd32; line1[6] <= 8'd32; line1[7] <= 8'd32;
             line1[8] <= 8'd32; line1[9] <= 8'd32; line1[10] <= 8'd32; line1[11] <= 8'd32;
@@ -256,11 +254,11 @@ module DecodeUI (
             line1[5] <= 8'd69;
         end
         else begin
-            // timeout ÀÓ°è°ª ¾÷µ¥ÀÌÆ®
+            // timeout ì„ê³„ê°’ ì—…ë°ì´íŠ¸
             timeout_threshold <= timeout_cycles;
             space_threshold   <= timeout_cycles << 1;
 
-            // ±âº» 0 (ÆŞ½º¼º)
+            // ê¸°ë³¸ 0 (í„ìŠ¤ì„±)
             char_complete_beep <= 1'b0;
 
             if(!is_active) begin
@@ -286,7 +284,7 @@ module DecodeUI (
                 cursor_update_pending <= 1'b0;
                 old_cursor_pos <= 4'd0;
 
-                led_out <= 8'h00;
+                led_out <= 8'b0000_0111;
                 
                 line0[0] <= 8'd32; line0[1] <= 8'd32; line0[2] <= 8'd32; line0[3] <= 8'd32;
                 line0[4] <= 8'd32; line0[5] <= 8'd32; line0[6] <= 8'd32; line0[7] <= 8'd32;
@@ -294,20 +292,12 @@ module DecodeUI (
                 line0[12] <= 8'd32; line0[13] <= 8'd32; line0[14] <= 8'd32; line0[15] <= 8'd32;
             end
             else begin
-                // prev °»½Å
+                // prev ê°±ì‹ 
                 pause_key_prev <= pause_key_now;
                 dot_key_prev   <= dot_key_now;
                 dash_key_prev  <= dash_key_now;
 
-                // LED Ç¥½Ã(µğ¹ö±×/»óÅÂ Ç¥½Ã)
-                led_out[0] <= dot_key_now  && !dot_key_prev;
-                led_out[1] <= dash_key_now && !dash_key_prev;
-                led_out[2] <= pause_pressed;
-                led_out[3] <= (morse_len != 0);
-                led_out[4] <= char_complete_beep;
-                led_out[7:5] <= state;
-
-                // pause Åä±Û
+                // pause í† ê¸€
                 if(pause_key_now && !pause_key_prev) begin
                     pause_pressed <= ~pause_pressed;
                     pause_lcd_busy <= 1'b1;
@@ -315,7 +305,7 @@ module DecodeUI (
                     pause_lcd_req_pending <= 1'b0;
                 end
                 
-                // morse_len »óÇÑ 5 Á¦ÇÑ
+                // morse_len ìƒí•œ 5 ì œí•œ
                 if(dot_key_now && !dot_key_prev && morse_len < 5) begin
                     morse_code <= {morse_code[4:0], 1'b0};
                     morse_len <= morse_len + 3'd1;
@@ -327,7 +317,7 @@ module DecodeUI (
                     idle_counter <= 32'd0;
                 end
 
-                // pause Ç¥½Ã LCD Ã³¸® (row1 col10~15¿¡ "PAUSE ")
+                // pause í‘œì‹œ LCD ì²˜ë¦¬ (row1 col10~15ì— "PAUSE ")
                 if(pause_lcd_busy) begin
                     if(pause_lcd_req_pending && lcd_done) begin
                         pause_lcd_req_pending <= 1'b0;
@@ -360,7 +350,7 @@ module DecodeUI (
                     end
                 end
 
-                // IDLE¿¡¼­ Å¸ÀÓ¾Æ¿ô/½ºÆäÀÌ½º ÆÇ´Ü
+                // IDLEì—ì„œ íƒ€ì„ì•„ì›ƒ/ìŠ¤í˜ì´ìŠ¤ íŒë‹¨
                 if(state == ST_IDLE) begin
                     if(!pause_pressed && 
                        !(dot_key_now && !dot_key_prev) && 
