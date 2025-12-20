@@ -6,6 +6,7 @@ module EncoderUI(
     input  wire [9:0]  key_in,
     input  wire        btn_encode,
     input  wire        btn_clear,
+    input  wire        btn_nxt,
     
     input  wire [31:0] dit_time,
     input  wire [31:0] dah_time,
@@ -25,7 +26,7 @@ module EncoderUI(
     parameter REPEAT_DELAY = 32'd50_000_000;
     
     //==========================================================================
-    // µð¹Ù¿î½Ì ·ÎÁ÷ Ãß°¡ (btn_encode, btn_clear)
+    // ????? ???? ??? (btn_encode, btn_clear)
     //==========================================================================
     localparam DEBOUNCE_CYCLES = 250_000; // 10ms
     
@@ -39,6 +40,33 @@ module EncoderUI(
         end else begin
             btn_encode_sync <= {btn_encode_sync[0], btn_encode};
             btn_clear_sync <= {btn_clear_sync[0], btn_clear};
+        end
+    end
+    
+    reg [1:0] btn_nxt_sync;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) btn_nxt_sync <= 2'b00;
+        else        btn_nxt_sync <= {btn_nxt_sync[0], btn_nxt};
+    end
+    
+    reg btn_nxt_stable;
+    reg [31:0] btn_nxt_counter;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            btn_nxt_stable <= 1'b0;
+            btn_nxt_counter <= 32'd0;
+        end else begin
+            if (btn_nxt_sync[1] != btn_nxt_stable) begin
+                if (btn_nxt_counter >= DEBOUNCE_CYCLES) begin
+                    btn_nxt_stable <= btn_nxt_sync[1];
+                    btn_nxt_counter <= 32'd0;
+                end else begin
+                    btn_nxt_counter <= btn_nxt_counter + 1;
+                end
+            end else begin
+                btn_nxt_counter <= 32'd0;
+            end
         end
     end
     
@@ -101,8 +129,16 @@ module EncoderUI(
         end
     end
     
+    reg btn_nxt_stable_prev;
+    wire btn_nxt_pulse = btn_nxt_stable && !btn_nxt_stable_prev; // Rising Edge
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) btn_nxt_stable_prev <= 1'b0;
+        else        btn_nxt_stable_prev <= btn_nxt_stable;
+    end
+    
     //==========================================================================
-    // ±âÁ¸ ·ÎÁ÷ (µð¹Ù¿î½ÌµÈ ¹öÆ° »ç¿ë)
+    // ???? ???? (?????? ??? ???)
     //==========================================================================
     
     // ========== Text Buffer ==========
@@ -147,9 +183,10 @@ module EncoderUI(
     reg       key_valid;
     reg       key_space;
     reg       key_backspace;
-    reg       key_next_map;
-    reg       key_prev_map;
-    
+    reg       key_next_map; // ì½¤ë³´ ì œê±°ë¡œ ì¸í•´ í˜„ìž¬ ì‚¬ìš© ì•ˆ í•¨ (í•„ìš” ì‹œ ë‹¤ë¥¸ í‚¤ì— í• ë‹¹ í•„ìš”)
+    reg       key_prev_map; // ì½¤ë³´ ì œê±°ë¡œ ì¸í•´ í˜„ìž¬ ì‚¬ìš© ì•ˆ í•¨
+    // reg       combo_used; // ë” ì´ìƒ í•„ìš” ì—†ìŒ
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             key_idx <= 4'd0;
@@ -158,7 +195,7 @@ module EncoderUI(
             key_backspace <= 1'b0;
             key_next_map <= 1'b0;
             key_prev_map <= 1'b0;
-            combo_used <= 1'b0;
+            // combo_used <= 1'b0; 
         end else begin
             key_valid <= 1'b0;
             key_space <= 1'b0;
@@ -166,33 +203,23 @@ module EncoderUI(
             key_next_map <= 1'b0;
             key_prev_map <= 1'b0;
             
-            // ¹öÆ° 9(key[8]) ´©¸¥ »óÅÂ¿¡¼­ Á¶ÇÕ °¨Áö
-            if (key_pressed[8]) begin
-                if (key_rising[7]) begin
-                    key_next_map <= 1'b1;
-                    combo_used <= 1'b1;
-                end 
-                else if (key_rising[6]) begin
-                    key_prev_map <= 1'b1;
-                    combo_used <= 1'b1;
-                end
+            // -------------------------------------------------------------
+            // [ìˆ˜ì •] ë²„íŠ¼ 9: ì½¤ë³´ ë° Release ë¡œì§ ì œê±° -> ë‹¨ìˆœížˆ ëˆ„ë¥´ë©´ SPACE
+            // -------------------------------------------------------------
+            if (key_rising[8]) begin
+                key_space <= 1'b1;  // ëˆ„ë¥´ëŠ” ìˆœê°„ ë°”ë¡œ Space ìž…ë ¥
             end
             
-            // ¹öÆ° 9 release ½Ã SPACE (Á¶ÇÕ ¾ø¾úÀ» ¶§¸¸)
-            if (key_falling[8]) begin
-                if (!combo_used) begin
-                    key_space <= 1'b1;
-                end
-                combo_used <= 1'b0;
-            end
-            
-            // ¹öÆ° 10 = BACKSPACE
+            // ë²„íŠ¼ 10: BACKSPACE (ê¸°ì¡´ ìœ ì§€)
             if (key_rising[9]) begin
                 key_backspace <= 1'b1;
             end
             
-            // ¹®ÀÚ Å° (¹öÆ° 1-8)
-            if (key_rising[7:0] != 8'h00 && !key_pressed[8]) begin
+            // -------------------------------------------------------------
+            // [ìˆ˜ì •] ë²„íŠ¼ 1~8: ì¼ë°˜ ë¬¸ìž ìž…ë ¥
+            // (!key_pressed[8] ì¡°ê±´ì„ ì œê±°í•˜ì—¬ 9ë²ˆ í‚¤ ìƒíƒœì™€ ë¬´ê´€í•˜ê²Œ ë™ìž‘)
+            // -------------------------------------------------------------
+            if (key_rising[7:0] != 8'h00) begin
                 key_valid <= 1'b1;
                 case (key_rising[7:0])
                     8'b00000001: key_idx <= 4'd0;
@@ -229,13 +256,13 @@ module EncoderUI(
             3'd1: begin
                 case (key_idx[2:0])
                     3'd0: mapped_char = "9";
-                    3'd1: mapped_char = "A";
-                    3'd2: mapped_char = "B";
-                    3'd3: mapped_char = "C";
-                    3'd4: mapped_char = "D";
-                    3'd5: mapped_char = "E";
-                    3'd6: mapped_char = "F";
-                    3'd7: mapped_char = "0";
+                    3'd1: mapped_char = "0";
+                    3'd2: mapped_char = "A";
+                    3'd3: mapped_char = "B";
+                    3'd4: mapped_char = "C";
+                    3'd5: mapped_char = "D";
+                    3'd6: mapped_char = "E";
+                    3'd7: mapped_char = "F";
                 endcase
             end
             3'd2: begin
@@ -324,7 +351,7 @@ module EncoderUI(
         .piezo_out(piezo_out)
     );
 
-    // ========== LCD 2Çà ¹®ÀÚ ¹è¿­ ==========
+    // ========== LCD 2?? ???? ?è¿­ ==========
     reg [7:0] lcd2_chars [0:15];
     
     always @(posedge clk or negedge rst_n) begin
@@ -366,8 +393,8 @@ module EncoderUI(
     reg [31:0] wait_counter;
     reg        lcd_refresh_req;
     
-    reg        lcd_refresh_req_r;    // ¡ç Ãß°¡
-    wire       lcd_refresh_edge;     // ¡ç Ãß°¡
+    reg        lcd_refresh_req_r;    // ?? ???
+    wire       lcd_refresh_edge;     // ?? ???
     
             always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -380,7 +407,7 @@ module EncoderUI(
     assign lcd_refresh_edge = lcd_refresh_req && !lcd_refresh_req_r;
 
     //==========================================================================
-// UI Activation Detection (FSM ºí·Ï ¹Û)
+// UI Activation Detection (FSM ???? ??)
 //==========================================================================
 reg is_active_prev;
 wire just_activated;
@@ -396,7 +423,7 @@ end
 assign just_activated = is_active && !is_active_prev;
 
 //==========================================================================
-// FSM (±âÁ¸ ºí·Ï ¼öÁ¤)
+// FSM (???? ???? ????)
 //==========================================================================
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -407,7 +434,7 @@ assign just_activated = is_active && !is_active_prev;
             enc_start <= 1'b0;
             piezo_start <= 1'b0;
             wait_counter <= 32'd0;
-            lcd_refresh_req <= 1'b0;  // ¡ç ¿©±â ¼±¾ðµÇ¾î ÀÖÀ½
+            lcd_refresh_req <= 1'b0;  // ?? ???? ?????? ????
             led_out <= 8'h00;
             
             for (i = 0; i < 16; i = i + 1) begin
@@ -418,9 +445,9 @@ assign just_activated = is_active && !is_active_prev;
             piezo_start <= 1'b0;
             lcd_refresh_req <= 1'b0;
             
-            // ========== UI È°¼ºÈ­ °¨Áö (FSM ºí·Ï ¾ÈÀ¸·Î ÀÌµ¿) ==========
+            // ========== UI ???? ???? (FSM ???? ?????? ???) ==========
             if (just_activated) begin
-                lcd_refresh_req <= 1'b1;  // ¡ç ÀÌÁ¦ ¿¡·¯ ¾È ³²!
+                lcd_refresh_req <= 1'b1;  // ?? ???? ???? ?? ??!
             end
             
             if (is_active) begin
@@ -445,14 +472,14 @@ assign just_activated = is_active && !is_active_prev;
                 end
                 
                 INPUT: begin
-                    if (key_prev_map) begin
-                        keymap_sel <= (keymap_sel == 3'd0) ? 3'd4 : keymap_sel - 3'd1;
-                        lcd_refresh_req <= 1'b1;
+                    if (btn_nxt_pulse) begin
+                    if (keymap_sel >= 3'd4) begin
+                        keymap_sel <= 3'd0; // ë§ˆì§€ë§‰ ë§µì´ë©´ ì²˜ìŒìœ¼ë¡œ
+                    end else begin
+                        keymap_sel <= keymap_sel + 3'd1; // ë‹¤ìŒ ë§µìœ¼ë¡œ
                     end
-                    if (key_next_map) begin
-                        keymap_sel <= (keymap_sel == 3'd4) ? 3'd0 : keymap_sel + 3'd1;
-                        lcd_refresh_req <= 1'b1;
-                    end
+                    lcd_refresh_req <= 1'b1; // ë§µì´ ë°”ë€Œì—ˆìœ¼ë‹ˆ LCD ê°±ì‹  ìš”ì²­
+                end
                     
                     if (btn_clear_pulse) begin
                         for (i = 0; i < 16; i = i + 1) begin
@@ -560,7 +587,7 @@ assign just_activated = is_active && !is_active_prev;
         end
     end
 
-    // ========== LCD Ãâ·Â »óÅÂ ¸Ó½Å ==========
+    // ========== LCD ??? ???? ??? ==========
     localparam LCD_IDLE = 2'd0;
     localparam LCD_WRITE = 2'd1;
     localparam LCD_WAIT = 2'd2;
