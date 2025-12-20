@@ -1,20 +1,20 @@
 `timescale 1ns / 1ps
 
 module ButtonMorseInput #(
-    parameter DEBOUNCE_CYCLES = 250_000           // 10ms µğ¹Ù¿î½º
+    parameter DEBOUNCE_CYCLES = 250_000           // 10ms ë””ë°”ìš´ìŠ¤
 )(
     input  wire        clk,
     input  wire        rst_n,
-    input  wire [4:0]  btn,                        // btn[0]=¹öÆ°1, btn[1]=¹öÆ°2, btn[2]=PAUSE, btn[3]=CLEAR
+    input  wire [4:0]  btn,                        // btn[0]=ë²„íŠ¼1, btn[1]=ë²„íŠ¼2, btn[2]=PAUSE, btn[3]=CLEAR
     
-    input wire [31:0] LONG_KEY_CYCLES,             // 500ms (DASH ÆÇÁ¤)
-    input wire [31:0] DIT_GAP_CYCLES,              // 250ms (ÀÚµ¿ ¹İº¹ ÁÖ±â)
+    input wire [31:0] LONG_KEY_CYCLES,             // 500ms (DASH íŒì •)
+    input wire [31:0] DIT_GAP_CYCLES,              // 250ms (ìë™ ë°˜ë³µ ì£¼ê¸°)
     
     output reg         key_valid,
     output reg  [10:0] key_packet,
     
-    output reg         btn1_held,                  // ¹öÆ°1 ´©¸£´Â Áß (ÇÇ¿¡Á¶¿ë)
-    output reg         btn2_dot_pulse              // ¹öÆ°2 DOT ÆŞ½º (ÇÇ¿¡Á¶¿ë)
+    output reg         btn1_held,                  // ë²„íŠ¼1 ëˆ„ë¥´ëŠ” ì¤‘ (í”¼ì—ì¡°ìš©)
+    output reg         btn2_dot_pulse              // ë²„íŠ¼2 DOT í„ìŠ¤ (í”¼ì—ì¡°ìš©)
 );
 
     localparam TYPE_KEY = 3'b001;
@@ -43,7 +43,7 @@ module ButtonMorseInput #(
     end
 
     //==========================================================================
-    // 2. Debouncer for btn[0] (¹öÆ°1)
+    // 2. Debouncer for btn[0] (ë²„íŠ¼1)
     //==========================================================================
     reg        b0_stable;
     reg [31:0] b0_counter;
@@ -67,7 +67,7 @@ module ButtonMorseInput #(
     end
 
     //==========================================================================
-    // 3. Debouncer for btn[1] (¹öÆ°2)
+    // 3. Debouncer for btn[1] (ë²„íŠ¼2)
     //==========================================================================
     reg        b1_stable;
     reg [31:0] b1_counter;
@@ -139,7 +139,7 @@ module ButtonMorseInput #(
     end
 
     //==========================================================================
-    // 6. ¹öÆ° »óÅÂ º¯¼ö
+    // 6. ë²„íŠ¼ ìƒíƒœ ë³€ìˆ˜
     //==========================================================================
     reg        b0_prev;
     reg [31:0] b0_hold_counter;
@@ -164,7 +164,7 @@ module ButtonMorseInput #(
     wire b3_pressed = (b3_stable && !b3_prev);
 
     //==========================================================================
-    // 7. ÅëÇÕ ·ÎÁ÷ (¹öÆ°0 + ¹öÆ°1 + ¹öÆ°2 + ¹öÆ°3)
+    // 7. í†µí•© ë¡œì§ (ë²„íŠ¼0 + ë²„íŠ¼1 + ë²„íŠ¼2 + ë²„íŠ¼3)
     //==========================================================================
     always @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
@@ -189,23 +189,23 @@ module ButtonMorseInput #(
             b2_prev <= b2_stable;
             b3_prev <= b3_stable;
             
-            // ±âº»°ª
+            // ê¸°ë³¸ê°’
             key_valid <= 1'b0;
             btn2_dot_pulse <= 1'b0;
             
-            // ========== btn[2] Ã³¸® (PAUSE) ==========
+            // ========== btn[2] ì²˜ë¦¬ (PAUSE) ==========
             if(b2_pressed) begin
                 key_valid <= 1'b1;
                 key_packet <= {TYPE_KEY, KEY_PAUSE};
             end
             
-            // ========== btn[3] Ã³¸® (CLEAR) ==========
+            // ========== btn[3] ì²˜ë¦¬ (CLEAR) ==========
             if(b3_pressed) begin
                 key_valid <= 1'b1;
                 key_packet <= {TYPE_KEY, KEY_CLEAR};
             end
             
-            // ========== ¹öÆ°2 Ã³¸® (btn[1] - DOT ÀÚµ¿ ¹İº¹) ==========
+            // ========== ë²„íŠ¼2 ì²˜ë¦¬ (btn[1] - DOT ìë™ ë°˜ë³µ) ==========
             if(b1_pressed) begin
                 b1_repeat_counter <= 32'd0;
                 b1_first_dot_sent <= 1'b1;
@@ -230,7 +230,7 @@ module ButtonMorseInput #(
                 b1_first_dot_sent <= 1'b0;
             end
             
-            // ========== ¹öÆ°1 Ã³¸® (btn[0] - DOT/DASH) ==========
+            // ========== ë²„íŠ¼1 ì²˜ë¦¬ (btn[0] - DOT/DASH) ==========
             if(b0_pressed) begin
                 btn1_held <= 1'b1;
                 b0_hold_counter <= 32'd0;
@@ -266,35 +266,35 @@ module ButtonMorseInput #(
 endmodule
 
 //==========================================================================
-// PiezoToneController - ÇÇ¿¡Á¶ ÄÁÆ®·Ñ·¯ (¼öÁ¤ ¹öÀü)
+// PiezoToneController - í”¼ì—ì¡° ì»¨íŠ¸ë¡¤ëŸ¬ (ìˆ˜ì • ë²„ì „)
 //==========================================================================
 module PiezoToneController (
     input  wire        clk,
     input  wire        rst_n,
-    input  wire        btn1_held,                  // ¹öÆ°1 ´©¸£´Â Áß
-    input  wire        btn2_dot_pulse,             // ¹öÆ°2 DOT ÆŞ½º
+    input  wire        btn1_held,                  // ë²„íŠ¼1 ëˆ„ë¥´ëŠ” ì¤‘
+    input  wire        btn2_dot_pulse,             // ë²„íŠ¼2 DOT í„ìŠ¤
     
-    input  wire [31:0] dash_cycles,                // »ç¿ë ¾È ÇÔ
-    input  wire [31:0] autorepeat_cycles,          // »ç¿ë ¾È ÇÔ
+    input  wire [31:0] dash_cycles,                // ì‚¬ìš© ì•ˆ í•¨
+    input  wire [31:0] autorepeat_cycles,          // ì‚¬ìš© ì•ˆ í•¨
     
-    input  wire        char_complete_beep,         // ¹®ÀÚ ¿Ï·á ºñÇÁÀ½
+    input  wire        char_complete_beep,         // ë¬¸ì ì™„ë£Œ ë¹„í”„ìŒ
     
     output reg         piezo_out
 );
 
     parameter CLK_HZ = 25_000_000;
     
-    // 440Hz Åæ (¹öÆ°1 ´©¸£´Â Áß, ¹öÆ°2 DOT)
+    // 440Hz í†¤ (ë²„íŠ¼1 ëˆ„ë¥´ëŠ” ì¤‘, ë²„íŠ¼2 DOT)
     parameter TONE_440HZ = 440;
     localparam TOGGLE_COUNT_440 = CLK_HZ / (2 * TONE_440HZ);
     
-    // 220Hz Åæ (¹®ÀÚ ¿Ï·á)
+    // 220Hz í†¤ (ë¬¸ì ì™„ë£Œ)
     parameter TONE_220HZ = 220;
     localparam TOGGLE_COUNT_220 = CLK_HZ / (2 * TONE_220HZ);
     
-    // ºñÇÁÀ½ Áö¼Ó ½Ã°£
-    localparam CHAR_BEEP_DURATION = CLK_HZ / 10;      // 100ms (¹®ÀÚ ¿Ï·á)
-    localparam DOT_BEEP_DURATION = CLK_HZ / 20;       // 50ms (¹öÆ°2 DOT)
+    // ë¹„í”„ìŒ ì§€ì† ì‹œê°„
+    localparam CHAR_BEEP_DURATION = CLK_HZ / 10;      // 100ms (ë¬¸ì ì™„ë£Œ)
+    localparam DOT_BEEP_DURATION = CLK_HZ / 20;       // 50ms (ë²„íŠ¼2 DOT)
     
     reg [31:0] tone_counter;
     reg        tone_toggle;
@@ -316,26 +316,26 @@ module PiezoToneController (
             dot_beep_counter <= 32'd0;
         end
         else begin
-            // ¹®ÀÚ ¿Ï·á ºñÇÁÀ½ Æ®¸®°Å (ÃÖ¿ì¼±)
+            // ë¬¸ì ì™„ë£Œ ë¹„í”„ìŒ íŠ¸ë¦¬ê±° (ìµœìš°ì„ )
             if(char_complete_beep) begin
                 char_beep_active <= 1'b1;
                 char_beep_counter <= 32'd0;
-                dot_beep_active <= 1'b0;      // ¡ç Ãß°¡
-                dot_beep_counter <= 32'd0;    // ¡ç Ãß°¡
+                dot_beep_active <= 1'b0;      // â† ì¶”ê°€
+                dot_beep_counter <= 32'd0;    // â† ì¶”ê°€
                 tone_counter <= 32'd0;
                 tone_toggle <= 1'b0;
             end
-            // ¹öÆ°2 DOT ºñÇÁÀ½ Æ®¸®°Å
-            else if(btn2_dot_pulse) begin     // ¡ç if ¡æ else if º¯°æ
+            // ë²„íŠ¼2 DOT ë¹„í”„ìŒ íŠ¸ë¦¬ê±°
+            else if(btn2_dot_pulse) begin     // â† if â†’ else if ë³€ê²½
                 dot_beep_active <= 1'b1;
                 dot_beep_counter <= 32'd0;
                 tone_counter <= 32'd0;
                 tone_toggle <= 1'b0;
             end
             
-            // ¿ì¼±¼øÀ§: ¹®ÀÚ ¿Ï·á ºñÇÁÀ½ > ¹öÆ°2 DOT ºñÇÁÀ½ > ¹öÆ°1 ¿¬¼ÓÀ½
+            // ìš°ì„ ìˆœìœ„: ë¬¸ì ì™„ë£Œ ë¹„í”„ìŒ > ë²„íŠ¼2 DOT ë¹„í”„ìŒ > ë²„íŠ¼1 ì—°ì†ìŒ
             if(char_beep_active) begin
-                // ¹®ÀÚ ¿Ï·á ºñÇÁÀ½ (220Hz, 100ms)
+                // ë¬¸ì ì™„ë£Œ ë¹„í”„ìŒ (220Hz, 100ms)
                 if(char_beep_counter < CHAR_BEEP_DURATION) begin
                     char_beep_counter <= char_beep_counter + 1;
                     
@@ -356,7 +356,7 @@ module PiezoToneController (
                 end
             end
             else if(dot_beep_active) begin
-                // ¹öÆ°2 DOT ºñÇÁÀ½ (440Hz, 50ms)
+                // ë²„íŠ¼2 DOT ë¹„í”„ìŒ (440Hz, 50ms)
                 if(dot_beep_counter < DOT_BEEP_DURATION) begin
                     dot_beep_counter <= dot_beep_counter + 1;
                     
@@ -377,7 +377,7 @@ module PiezoToneController (
                 end
             end
             else if(btn1_held) begin
-                // ¹öÆ°1 ¿¬¼ÓÀ½ (440Hz)
+                // ë²„íŠ¼1 ì—°ì†ìŒ (440Hz)
                 if(tone_counter < TOGGLE_COUNT_440) begin
                     tone_counter <= tone_counter + 1;
                 end
@@ -402,14 +402,14 @@ module ServoController #(
 )(
     input  wire       clk,
     input  wire       rst_n,
-    input  wire [8:0] angle,      // 0~180µµ
+    input  wire [8:0] angle,      // 0~180ë„
     output reg        pwm_out
 );
 
-    // PWM ÁÖ±â: 20ms (50Hz)
+    // PWM ì£¼ê¸°: 20ms (50Hz)
     localparam PWM_PERIOD = CLK_HZ / 50;  // 2,000,000 cycles
     
-    // ÆŞ½º Æø: 1ms(0µµ) ~ 2ms(180µµ) - Ç¥ÁØ ¼­º¸
+    // í„ìŠ¤ í­: 1ms(0ë„) ~ 2ms(180ë„) - í‘œì¤€ ì„œë³´
     localparam MIN_PULSE = CLK_HZ / 1000;  // 1ms = 100,000 cycles
     localparam MAX_PULSE = CLK_HZ / 500;   // 2ms = 200,000 cycles
     localparam PULSE_RANGE = MAX_PULSE - MIN_PULSE;  // 100,000 cycles
@@ -417,10 +417,10 @@ module ServoController #(
     reg [31:0] counter;
     reg [31:0] pulse_width;
     
-    // °¢µµ ¡æ ÆŞ½º Æø º¯È¯ (°íÁ¤¼Ò¼öÁ¡ ¿¬»ê)
+    // ê°ë„ â†’ í„ìŠ¤ í­ ë³€í™˜ (ê³ ì •ì†Œìˆ˜ì  ì—°ì‚°)
     // pulse_width = MIN_PULSE + (angle * PULSE_RANGE / 180)
     always @(*) begin
-        // Á¤¹Ğµµ Çâ»ó: (angle * PULSE_RANGE) ¸ÕÀú °è»ê
+        // ì •ë°€ë„ í–¥ìƒ: (angle * PULSE_RANGE) ë¨¼ì € ê³„ì‚°
         pulse_width = MIN_PULSE + ((angle * PULSE_RANGE) / 180);
     end
     
@@ -437,7 +437,7 @@ module ServoController #(
                 counter <= 32'd0;
             end
             
-            // PWM Ãâ·Â
+            // PWM ì¶œë ¥
             pwm_out <= (counter < pulse_width) ? 1'b1 : 1'b0;
         end
     end
@@ -448,12 +448,12 @@ endmodule
 
 //==============================================================================
 // LCD_Controller.v
-// 16x2 Character LCD Á¦¾î ¸ğµâ (HD44780 È£È¯)
+// 16x2 Character LCD ì œì–´ ëª¨ë“ˆ (HD44780 í˜¸í™˜)
 //==============================================================================
-// ±â´É:
-// - DecodeUI·ÎºÎÅÍ ¹®ÀÚ Ãâ·Â ¿äÃ» ¼ö½Å
-// - LCD ÃÊ±âÈ­ ¹× ¹®ÀÚ Ãâ·Â
-// - 4ºñÆ® ¸ğµå µ¿ÀÛ
+// ê¸°ëŠ¥:
+// - DecodeUIë¡œë¶€í„° ë¬¸ì ì¶œë ¥ ìš”ì²­ ìˆ˜ì‹ 
+// - LCD ì´ˆê¸°í™” ë° ë¬¸ì ì¶œë ¥
+// - 4ë¹„íŠ¸ ëª¨ë“œ ë™ì‘
 //==============================================================================
 
 `timescale 1ns / 1ps
@@ -464,7 +464,7 @@ module LCD_Controller #(
     input  wire        clk,
     input  wire        rst_n,
     
-    // DecodeUI ÀÎÅÍÆäÀÌ½º
+    // DecodeUI ì¸í„°í˜ì´ìŠ¤
     input  wire        lcd_req,
     input  wire [1:0]  lcd_row,
     input  wire [3:0]  lcd_col,
@@ -473,7 +473,7 @@ module LCD_Controller #(
     output reg         lcd_busy,
     output reg         lcd_done,
     
-    // LCD ÇÏµå¿ş¾î ÇÉ (8ºñÆ® ¸ğµå)
+    // LCD í•˜ë“œì›¨ì–´ í•€ (8ë¹„íŠ¸ ëª¨ë“œ)
     output reg         lcd_e,
     output reg         lcd_rs,
     output reg         lcd_rw,
@@ -481,7 +481,7 @@ module LCD_Controller #(
 );
 
     //==========================================================================
-    // Å¸ÀÌ¹Ö »ó¼ö (CLK_HZ ±âÁØ)
+    // íƒ€ì´ë° ìƒìˆ˜ (CLK_HZ ê¸°ì¤€)
     //==========================================================================
     localparam integer CNT_15MS  = (CLK_HZ / 1000) * 15;      // 15ms
     localparam integer CNT_5MS   = (CLK_HZ / 1000) * 5;       // 5ms
@@ -494,7 +494,7 @@ module LCD_Controller #(
     localparam integer E_PULSE_TOTAL = E_PULSE_END + CNT_CMD;
 
     //==========================================================================
-    // ¸í·É¾î Á¤ÀÇ
+    // ëª…ë ¹ì–´ ì •ì˜
     //==========================================================================
     localparam [7:0] CMD_WAKEUP     = 8'h30;
     localparam [7:0] CMD_FUNC_SET   = 8'h38; // 8-bit, 2-line, 5x8 font
@@ -504,7 +504,7 @@ module LCD_Controller #(
     localparam [7:0] CMD_DISP_ON    = 8'h0C; // Display On, Cursor Off
 
     //==========================================================================
-    // »óÅÂ ¸Ó½Å
+    // ìƒíƒœ ë¨¸ì‹ 
     //==========================================================================
     localparam [4:0] ST_PWR_WAIT   = 0;
     localparam [4:0] ST_INIT_1     = 1;
@@ -524,7 +524,7 @@ module LCD_Controller #(
     reg [6:0]  target_addr;
 
     //==========================================================================
-    // ÃÊ±âÈ­ ¹× »óÅÂ ¸Ó½Å
+    // ì´ˆê¸°í™” ë° ìƒíƒœ ë¨¸ì‹ 
     //==========================================================================
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -538,12 +538,12 @@ module LCD_Controller #(
             lcd_done <= 0;
             target_addr <= 0;
         end else begin
-            // ±âº»°ª
+            // ê¸°ë³¸ê°’
             lcd_done <= 0;
             
             case (state)
                 //==============================================================
-                // ÃÊ±âÈ­ ½ÃÄö½º (´ç½ÅÀÇ ÄÚµå ½ºÅ¸ÀÏ)
+                // ì´ˆê¸°í™” ì‹œí€€ìŠ¤ (ë‹¹ì‹ ì˜ ì½”ë“œ ìŠ¤íƒ€ì¼)
                 //==============================================================
                 ST_PWR_WAIT: begin
                     lcd_busy <= 1;
@@ -685,7 +685,7 @@ module LCD_Controller #(
                 end
 
                 //==============================================================
-                // ´ë±â ¹× ¹®ÀÚ Ãâ·Â
+                // ëŒ€ê¸° ë° ë¬¸ì ì¶œë ¥
                 //==============================================================
                 ST_IDLE: begin
                     lcd_e <= 0;
@@ -695,7 +695,7 @@ module LCD_Controller #(
                     if (lcd_req) begin
                         lcd_busy <= 1;
                         
-                        // ÁÂÇ¥ °è»ê
+                        // ì¢Œí‘œ ê³„ì‚°
                         if (lcd_row == 2'b00) begin
                             target_addr <= {3'b000, lcd_col}; // 0x00 + col
                         end else begin
@@ -723,7 +723,7 @@ module LCD_Controller #(
                 end
 
                 ST_WRITE_CHAR: begin
-                    lcd_rs <= 1; // Data ¸ğµå
+                    lcd_rs <= 1; // Data ëª¨ë“œ
                     lcd_rw <= 0;
                     lcd_data <= lcd_char;
                     
