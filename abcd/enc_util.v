@@ -1,6 +1,6 @@
 module EncoderPiezoPlayer #(
     parameter CLK_FREQ = 50_000_000,
-    parameter TONE_FREQ = 440  // ? ÆÄ¶ó¹ÌÅÍ·Î º¯°æ!
+    parameter TONE_FREQ = 440  // ? íŒŒë¼ë¯¸í„°ë¡œ ë³€ê²½!
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -17,7 +17,7 @@ module EncoderPiezoPlayer #(
     output reg         piezo_out
 );
 
-    // ? Åæ »ı¼º ÁÖ±â °è»ê
+    // ? í†¤ ìƒì„± ì£¼ê¸° ê³„ì‚°
     localparam HALF_PERIOD = CLK_FREQ / (2 * TONE_FREQ);
     
     localparam IDLE    = 2'd0;
@@ -36,7 +36,7 @@ module EncoderPiezoPlayer #(
     reg        current_tone_enable;
     reg [2:0]  current_bits_consumed;
     
-    // µğÄÚµù ·ÎÁ÷
+    // ë””ì½”ë”© ë¡œì§
     reg [1:0] next_symbol;
     reg [31:0] next_duration;
     reg next_tone_enable;
@@ -156,7 +156,7 @@ module EncoderPiezoPlayer #(
                                 end
                             end else begin
                                 // Dah
-                                if (play_timer < DahTime) begin
+                                if (play_timer < DahTime ) begin
                                     if (tone_counter >= HALF_PERIOD - 1) begin
                                         tone_counter <= 32'd0;
                                         piezo_out <= ~piezo_out;
