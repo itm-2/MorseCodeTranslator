@@ -94,7 +94,7 @@ module Top (
     
     ButtonMorseInput #(.DEBOUNCE_CYCLES(250_000)) btn_morse_input (
         .clk(clk), .rst_n(rst_n),
-        .btn({btn[4], btn[3], btn[2], btn[1], btn[0], 1'b0}),
+        .btn({btn[4], btn[3], btn[2], btn[1], btn[0]}),
         .LONG_KEY_CYCLES(long_key_cycles),
         .DIT_GAP_CYCLES(dit_gap_cycles),
         .key_valid(key_valid),
@@ -144,8 +144,9 @@ module Top (
         .clk(clk), .rst_n(rst_n),
         .is_active(current_ui == UI_ENCODE),
         .key_in(btn_pressed[9:0]),
-        .btn_encode(btn_pressed[11]),
-        .btn_clear(btn_pressed[10]),
+        .btn_encode(btn[11]),
+        .btn_nxt(btn[10]),
+        .btn_clear(1'b0),
         .dit_time(dit_time),
         .dah_time(dah_time),
         .dit_gap_time(dit_gap),
@@ -187,7 +188,7 @@ module Top (
     );
    
     //==========================================================================
-    // Setting UI LCD FSM (새로운 버전)
+    // Setting UI LCD FSM (???恝? ????)
     //==========================================================================
     localparam ST_SETTING_IDLE  = 3'd0;
     localparam ST_SETTING_CLEAR = 3'd1;
@@ -195,13 +196,13 @@ module Top (
     localparam ST_SETTING_WAIT  = 3'd3;
     
     reg [2:0] setting_lcd_state;
-    reg [5:0] setting_char_index;  // 0~31 (6비트)
+    reg [5:0] setting_char_index;  // 0~31 (6???)
     reg [127:0] setting_text_buffer;
     reg setting_lcd_req;
     reg [1:0] setting_lcd_row;
     reg [3:0] setting_lcd_col;
     reg [7:0] setting_lcd_char;
-    reg setting_clear_done;  // CLEAR 완료 플래그
+    reg setting_clear_done;  // CLEAR ??? ?첨???
     wire setting_lcd_busy;
     wire setting_lcd_done;
     
@@ -234,7 +235,7 @@ module Top (
         end else begin
             case (setting_lcd_state)
                 // ========================================
-                // IDLE: 트리거 대기
+                // IDLE: ????? ???
                 // ========================================
                 ST_SETTING_IDLE: begin
                     setting_lcd_req <= 1'b0;
@@ -248,20 +249,20 @@ module Top (
                 end
                 
                 // ========================================
-                // CLEAR: 화면 전체 클리어 (32글자)
+                // CLEAR: ??? ??? ????? (32????)
                 // ========================================
                 ST_SETTING_CLEAR: begin
                     if (!setting_lcd_busy && !setting_lcd_req) begin
                         setting_lcd_req <= 1'b1;
                         setting_lcd_row <= (setting_char_index < 6'd16) ? 2'd0 : 2'd1;
                         setting_lcd_col <= setting_char_index[3:0];
-                        setting_lcd_char <= 8'h20;  // 공백
+                        setting_lcd_char <= 8'h20;  // ????
                         setting_lcd_state <= ST_SETTING_WAIT;
                     end
                 end
                 
                 // ========================================
-                // WRITE: 텍스트 쓰기 (32글자)
+                // WRITE: ???? ???? (32????)
                 // ========================================
                 ST_SETTING_WRITE: begin
                     if (!setting_lcd_busy && !setting_lcd_req) begin
@@ -269,7 +270,7 @@ module Top (
                         setting_lcd_row <= (setting_char_index < 6'd16) ? 2'd0 : 2'd1;
                         setting_lcd_col <= setting_char_index[3:0];
                         
-                        // 텍스트 버퍼에서 해당 글자 추출 (Row 0만)
+                        // ???? ??????? ??? ???? ???? (Row 0??)
                         case (setting_char_index)
                             6'd0:  setting_lcd_char <= setting_text_buffer[127:120];
                             6'd1:  setting_lcd_char <= setting_text_buffer[119:112];
@@ -287,10 +288,10 @@ module Top (
                             6'd13: setting_lcd_char <= setting_text_buffer[23:16];
                             6'd14: setting_lcd_char <= setting_text_buffer[15:8];
                             6'd15: setting_lcd_char <= setting_text_buffer[7:0];
-                            default: setting_lcd_char <= 8'h20;  // Row1은 공백
+                            default: setting_lcd_char <= 8'h20;  // Row1?? ????
                         endcase
                         
-                        // NULL 문자는 공백으로 변환
+                        // NULL ????? ???????? ???
                         if (setting_lcd_char == 8'h00) 
                             setting_lcd_char <= 8'h20;
                         
@@ -299,25 +300,25 @@ module Top (
                 end
                 
                 // ========================================
-                // WAIT: LCD 완료 대기
+                // WAIT: LCD ??? ???
                 // ========================================
                 ST_SETTING_WAIT: begin
                     setting_lcd_req <= 1'b0;
                     
                     if (lcd_done_shared) begin
                         if (setting_char_index == 6'd31) begin
-                            // 32글자 완료
+                            // 32???? ???
                             setting_char_index <= 6'd0;
                             if (!setting_clear_done) begin
-                                // CLEAR 완료 → WRITE로
+                                // CLEAR ??? ?? WRITE??
                                 setting_clear_done <= 1'b1;
                                 setting_lcd_state <= ST_SETTING_WRITE;
                             end else begin
-                                // WRITE 완료 → IDLE로
+                                // WRITE ??? ?? IDLE??
                                 setting_lcd_state <= ST_SETTING_IDLE;
                             end
                         end else begin
-                            // 다음 글자
+                            // ???? ????
                             setting_char_index <= setting_char_index + 6'd1;
                             setting_lcd_state <= setting_clear_done ? ST_SETTING_WRITE : ST_SETTING_CLEAR;
                         end
